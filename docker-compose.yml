@@ -1,0 +1,8 @@
+# По умолчанию подключается GPU-стек из каталога gpu/.
+# CPU-стек: docker compose -f cpu/docker-compose.yml --env-file .env up -d
+#
+# Рекомендуется явно указывать env-файл при запуске из подкаталогов:
+#   cd gpu  && docker compose --env-file ../.env up -d
+
+include:
+  - path: gpu/docker-compose.yml

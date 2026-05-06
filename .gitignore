@@ -1,0 +1,26 @@
+# Данные и модели (слишком большие для git)
+data/models/*
+data/datasets/*
+data/output/*
+data/hf_cache/*
+data/ollama/*
+data/open-webui/*
+data/logs/tb/*
+data/logs/aim/*
+
+# Сохраняем структуру каталогов
+!data/**/.gitkeep
+
+# Ноутбуки с выводом — по желанию
+# data/notebooks/*
+
+# Секреты
+.env
+
+# Клон Onyx после bootstrap (не в git)
+onyx/upstream/
+
+# Системные
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

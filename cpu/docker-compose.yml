@@ -1,0 +1,109 @@
+# AI Lab — стек обучения + инференс (CPU / RAM)
+# Без NVIDIA GPU: Ollama и PyTorch используют CPU. Дообучение LLM будет очень медленным.
+# Запуск из каталога cpu/: docker compose --profile inference up -d
+
+services:
+  llama-factory:
+    image: hiyouga/llamafactory:latest
+    container_name: ailab-llama-factory-cpu
+    ipc: host
+    tty: true
+    stdin_open: true
+    ports:
+      - "${LF_PORT_UI:-7860}:7860"
+      - "${LF_PORT_API:-8000}:8000"
+    volumes:
+      - ../data/models:/app/models
+      - ../data/datasets:/app/data
+      - ../data/output:/app/output
+      - ../data/hf_cache:/root/.cache/huggingface
+      - ../data/logs/tb:/app/output/tensorboard
+      - ../scripts:/app/scripts
+    environment:
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+      - HF_HOME=/root/.cache/huggingface
+      - HF_TOKEN=${HF_TOKEN:-}
+      - CUDA_VISIBLE_DEVICES=
+    restart: unless-stopped
+    networks:
+      - ailab-cpu
+
+  tensorboard:
+    build:
+      context: ../docker/tensorboard
+      dockerfile: Dockerfile
+    container_name: ailab-tensorboard-cpu
+    ports:
+      - "${TB_PORT:-6006}:6006"
+    volumes:
+      - ../data/logs/tb:/logs:ro
+      - ../data/output:/output:ro
+    command: >
+      tensorboard
+        --logdir=/logs
+        --host=0.0.0.0
+        --port=6006
+        --reload_multifile=true
+    restart: unless-stopped
+    networks:
+      - ailab-cpu
+
+  aim:
+    image: aimstack/aim:latest
+    container_name: ailab-aim-cpu
+    ports:
+      - "${AIM_PORT_UI:-43800}:43800"
+      - "${AIM_PORT_TRACKING:-53800}:53800"
+    volumes:
+      - ../data/logs/aim:/opt/aim
+    command: up --host 0.0.0.0 --port 43800 --repo /opt/aim
+    restart: unless-stopped
+    networks:
+      - ailab-cpu
+
+  jupyter:
+    image: quay.io/jupyter/pytorch-notebook:latest
+    container_name: ailab-jupyter-cpu
+    ports:
+      - "${JUPYTER_PORT:-8888}:8888"
+    volumes:
+      - ../data/models:/home/jovyan/models
+      - ../data/datasets:/home/jovyan/data
+      - ../data/output:/home/jovyan/output
+      - ../data/notebooks:/home/jovyan/work
+      - ../data/logs:/home/jovyan/logs
+      - ../data/hf_cache:/home/jovyan/.cache/huggingface
+      - ../scripts:/home/jovyan/scripts
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - GRANT_SUDO=yes
+      - HF_HOME=/home/jovyan/.cache/huggingface
+      - HF_TOKEN=${HF_TOKEN:-}
+    command: >
+      start-notebook.sh
+        --NotebookApp.token=''
+        --NotebookApp.password=''
+        --ServerApp.disable_check_xsrf=True
+    restart: unless-stopped
+    networks:
+      - ailab-cpu
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ailab-ollama-cpu
+    profiles:
+      - inference
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ../data/ollama:/root/.ollama
+      - ../data/models:/models:ro
+    restart: unless-stopped
+    networks:
+      - ailab-cpu
+
+networks:
+  ailab-cpu:
+    name: ailab-cpu
+    driver: bridge
